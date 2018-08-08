@@ -4,8 +4,11 @@ var PORT = 8080;
 
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
-
+var cookieParser = require("cookie-parser");
+app.use(cookieParser());
 function generateRandomString() {
+  //Imported from the URL below
+  //https://stackoverflow.com/questions/10726909/random-alpha-numeric-string-in-javascript
   console.log("random.");
   var chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   var length = 6;
@@ -25,7 +28,11 @@ var urlDatabase = {
 };
 
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase };
+  //console.log(req.headers);
+  let templateVars = {
+    username: req.cookies["username"],
+    urls: urlDatabase
+  };
   res.render("urls_index", templateVars);
 });
 
@@ -83,6 +90,13 @@ app.post("/urls", (req, res) => {
   res.redirect(`u/${shortURL}`);
   //res.redirect(`urls/`);
 });
+
+//sign in cookie
+app.post("/login", (req, res) => {
+  res.cookie("username", req.body.username);
+  res.redirect("urls");
+});
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
