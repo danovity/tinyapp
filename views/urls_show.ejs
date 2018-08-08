@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>TinyApp</title>
+</head>
+
+<body>
+    <!-- Add your EJS code here -->
+
+
+    <main>
+        <div class="jumbotron">
+            <h2>ShortURL:
+                <%= shortURL %>
+            </h2>
+            <form action="/urls/<%= shortURL %>/update" method="post">
+                <input type="text" name="newURL" id="<%= shortURL %>" value="<%= urls[shortURL] %>">
+                <button type="submit">Update</button>
+            </form>
+        </div>
+    </main>
+
+</body>
+
+</html>
+
+<!-- views/pages/index.ejs -->
