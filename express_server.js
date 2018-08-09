@@ -67,7 +67,7 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars);
 });
 //register page
-app.get("/urls/register", (req, res) => {
+app.get("/register", (req, res) => {
   //if (Object.keys(users).length > 0) {
   //res.redirect("/urls");
   // } else if (Object.keys(users).length === 0) {
@@ -96,32 +96,38 @@ app.get("/login", (req, res) => {
 
 //register
 app.post("/register", (req, res) => {
-  var userRegistered = false;
+  var userValid = false;
   console.log(`post register, users is: `, users);
-  for (var id in users) {
-    if (users[id].email === req.body.email) {
-      console.log(
-        `post register, comparison, userRegister should be false, but is actually: `,
-        userRegistered
-      );
-      userRegistered = true;
-    }
-  }
 
   if (req.body.email === "" || req.body.password === "") {
     console.log(
       `post register, userRegister should be false, but is actually: `,
-      userRegistered
+      userValid
     );
     res.status(400);
     res.render("urls_register");
-  } else if (userRegistered === false) {
+    return; // return is to end function
+  } else {
+    userValid = true;
+    for (var id in users) {
+      if (users[id].email === req.body.email) {
+        console.log(
+          `post register, comparison, userRegister should be false, but is actually: `,
+          userValid
+        );
+        userValid = false;
+        break; //stops the for loop, if the user email is already registered
+        // break, bc for loop
+      }
+    }
+  }
+  if (userValid === true) {
     let id = uuidv4();
     let email = req.body.email;
     let password = req.body.password;
     console.log(
       `post register, userRegister should be true, but is actually: `,
-      userRegistered
+      userValid
     );
     users[id] = {
       id,
@@ -130,8 +136,9 @@ app.post("/register", (req, res) => {
     };
     console.log(users);
     res.cookie("user_id", id);
-    res.redirect("/login");
-  } else if (userRegistered === true) {
+    res.redirect("/urls");
+  } else {
+    //userValid === false
     res.redirect("/login");
   }
 });
