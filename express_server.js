@@ -7,6 +7,7 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 var cookieParser = require("cookie-parser");
 app.use(cookieParser());
+
 function generateRandomString() {
   //Imported from the URL below
   //https://stackoverflow.com/questions/10726909/random-alpha-numeric-string-in-javascript
@@ -22,7 +23,7 @@ function generateRandomString() {
 }
 
 function headerState() {
-  return req.cookies["username"] ? req.cookies["username"] : undefined;
+  return req.cookies["user_id"] ? req.cookies["user_id"] : undefined;
 }
 
 app.set("view engine", "ejs");
@@ -32,26 +33,45 @@ var urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-const users = {};
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur"
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk"
+  }
+};
 const userStatus = { userLoggedIn: false };
+
+//current user that is logged in
+function currentUser(req) {
+  return users[req.cookies.user_id];
+}
+
+//check if user is logged in
+function userLoggedIn(enteredEmail, enteredPassword) {
+  for (var id in users) {
+    if (
+      enteredEmail === users[id].email &&
+      enteredPassword === users[id].password
+    ) {
+      return id;
+    }
+  }
+  return false;
+}
 
 app.get("/urls", (req, res) => {
   //console.log(req.headers);
   let templateVars = {
-    username: req.cookies["username"],
+    user: currentUser(req),
     urls: urlDatabase
   };
 
-  /*   for (var prop in users) {
-    if (users.hasOwnProperty(prop)) {
-      console.log(users.hasOwnProperty(prop));
-      res.render("urls_index", templateVars);
-    } else if (!users.hasOwnProperty(prop)) {
-      console.log(users.hasOwnProperty(prop));
-      console.log("no user.");
-      res.redirect("/urls/register");
-    }
-  } */
   if (Object.keys(users).length > 0 && req.cookies["user_id"]) {
     res.render("urls_index", templateVars);
   } else if (Object.keys(users).length === 0 || !req.cookies["user_id"]) {
@@ -62,35 +82,22 @@ app.get("/urls", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"]
+    user: currentUser(req)
   };
   res.render("urls_new", templateVars);
 });
+
 //register page
 app.get("/register", (req, res) => {
-  //if (Object.keys(users).length > 0) {
-  //res.redirect("/urls");
-  // } else if (Object.keys(users).length === 0) {
-  res.render("urls_register");
-  //}
+  res.render("urls_register", { user: undefined });
 });
 
 //login page
 app.get("/login", (req, res) => {
-  if (userStatus.userLoggedIn === false) {
-    console.log(
-      `userStatus.userLoggedIn should be false, actual: ${
-        userStatus.userLoggedIn
-      }`
-    );
-    res.render("urls_login", { userLoggedIn: userStatus.userLoggedIn });
-  } else if (userStatus.userLoggedIn === true) {
-    console.log(
-      `userStatus.userLoggedIn should be true, actual: ${
-        userStatus.userLoggedIn
-      }`
-    );
-    res.render("urls_login", { userLoggedIn: userStatus.userLoggedIn });
+  if (currentUser(req)) {
+    res.redirect("/");
+  } else {
+    res.render("urls_login", { user: undefined });
   }
 });
 
@@ -136,7 +143,7 @@ app.post("/register", (req, res) => {
     };
     console.log(users);
     res.cookie("user_id", id);
-    res.redirect("/urls");
+    res.redirect("/login");
   } else {
     //userValid === false
     res.redirect("/login");
@@ -144,10 +151,9 @@ app.post("/register", (req, res) => {
 });
 app.get("/urls/:id", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"],
+    user: currentUser(req),
     shortURL: req.params.id,
-    urls: urlDatabase,
-    users: users
+    urls: urlDatabase
   };
   res.render("urls_show", templateVars);
 });
@@ -155,10 +161,9 @@ app.get("/urls/:id", (req, res) => {
 //receiving the url that the user wants to update and go to urls_show
 app.get("/urls/:id/edit", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"],
+    user: currentUser(req),
     shortURL: req.params.id,
-    urls: urlDatabase,
-    users: users
+    urls: urlDatabase
   };
   res.render("urls_show", templateVars);
 });
@@ -176,9 +181,8 @@ app.post("/urls/:id/delete", (req, res) => {
   let deleteURL = req.params.id;
   delete urlDatabase[deleteURL];
   let templateVars = {
-    username: req.cookies["username"],
     urls: urlDatabase,
-    users: users
+    user: currentUser(req)
   };
   res.render("urls_index", templateVars);
 });
@@ -189,13 +193,10 @@ app.post("/urls/:id/update", (req, res) => {
   let updateUrlValue = req.body.newURL;
 
   urlDatabase[updateUrlName] = updateUrlValue;
-  //console.log(req.body.newURL);
-  //console.log("res", res);
 
   let templateVars = {
-    username: req.cookies["username"],
-    urls: urlDatabase,
-    users: users
+    user: currentUser(req),
+    urls: urlDatabase
   };
   res.render("urls_index", templateVars);
 });
@@ -204,44 +205,28 @@ app.post("/urls", (req, res) => {
   let shortURL = generateRandomString();
   console.log("shortURL", shortURL);
   urlDatabase[shortURL] = longURL;
-  //console.log(req.body); // debug statement to see POST parameters
-  //res.send("Ok"); // Respond with 'Ok' (we will replace this)
-  //let templateVars = { urls: urlDatabase };
   res.redirect(`u/${shortURL}`);
-  //res.redirect(`urls/`);
 });
 
 //sign in cookie
 app.post("/login", (req, res) => {
-  let email = req.body.login;
-  let password = req.body.password;
-  if (
-    users[req.cookies["user_id"]].email === email &&
-    users[req.cookies["user_id"]].password === password
-  ) {
-    console.log(
-      `post login, userStatus.userLoggedIn should be true, but is actually: `,
-      userStatus.userLoggedIn
-    );
-    userStatus.userLoggedIn = true;
+  console.log("at post login, req is: ", req);
+  let enteredEmail = req.body.login;
+  let enteredPassword = req.body.password;
+  let id = userLoggedIn(enteredEmail, enteredPassword);
+  if (id) {
+    res.cookie("user_id", id);
     res.redirect("/urls");
-  } else if (
-    users[req.cookies["user_id"]].email !== email &&
-    users[req.cookies["user_id"]].password !== password
-  ) {
-    console.log(
-      `post login, userStatus.userLoggedIn should be false, but is actually: `,
-      userStatus.userLoggedIn
-    );
-    res.render("urls_login", { userLoggedIn: userStatus.userLoggedIn });
+  } else {
+    res.status(403);
+    res.render("urls_login", { user: undefined });
   }
 });
 
 //sign out cookie
 app.get("/logout", (req, res) => {
   res.clearCookie("user_id");
-  userStatus.userLoggedIn = false;
-  res.render("urls_login", { userLoggedIn: userStatus.userLoggedIn });
+  res.render("urls_login", { user: undefined });
 });
 
 app.listen(PORT, () => {

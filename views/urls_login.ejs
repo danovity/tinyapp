@@ -3,19 +3,16 @@
 
 <head></head>
 
-<% if (userLoggedIn===true) { %>
+<% if(user) { %>
     <%- include partials/_header.ejs %>
-        <form action="/logout" method="GET">
-            <button type="submit">log out</button>
-        </form>
-        <% } else if (userLoggedIn===false)  { %>
-            <%- include partials/_header.ejs %>
-                <form action="/login" method="POST">
-                    <label for="login">LOG IN</label>
-                    <input id="login" type="login" name="login" placeholder="Email" style="width: 300px">
-                    <input id="password" type="password" name="password" style="width: 300px" placeholder="Password">
-                    <input type="submit" value="Submit">
-                </form>
-                <% } %>
+        <% } else { %>
+            <a href="/register">Register</a>
+            <form action="/login" method="POST">
+                <label for="login">LOG IN</label>
+                <input id="login" type="login" name="login" placeholder="Email" style="width: 300px">
+                <input id="password" type="password" name="password" style="width: 300px" placeholder="Password">
+                <input type="submit" value="Submit">
+            </form>
+            <% } %>
 
 </html>

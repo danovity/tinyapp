@@ -1,7 +1,8 @@
-<% if(userLoggedIn===true) { %>
+<% if(user) { %>
     <form action="/logout" method="GET">
         <button type="submit">log out</button>
     </form>
-    <% } else if (userLoggedIn===false) { %>
-        <a href="/urls/register">Register</a>
+    <% } else { %>
+        <a href="/register">Register</a>
+        <a href="/login">Login</a>
         <% } %>

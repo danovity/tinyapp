@@ -10,7 +10,7 @@
 
 
     <main>
-        <div class="jumbotron">
+        <%- include partials/_header.ejs %>
             <ul>
                 <% for (var shortURL in urls) { %>
                     <li>
@@ -28,9 +28,6 @@
                     </li>
                     <% }; %>
             </ul>
-        </div>
-
-
     </main>
 
 </body>
