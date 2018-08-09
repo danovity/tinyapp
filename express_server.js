@@ -1,6 +1,7 @@
 var express = require("express");
 var app = express();
 var PORT = 8080;
+const uuidv4 = require("uuid/v4");
 
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -31,13 +32,32 @@ var urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {};
+const userStatus = { userLoggedIn: false };
+
 app.get("/urls", (req, res) => {
   //console.log(req.headers);
   let templateVars = {
     username: req.cookies["username"],
     urls: urlDatabase
   };
-  res.render("urls_index", templateVars);
+
+  /*   for (var prop in users) {
+    if (users.hasOwnProperty(prop)) {
+      console.log(users.hasOwnProperty(prop));
+      res.render("urls_index", templateVars);
+    } else if (!users.hasOwnProperty(prop)) {
+      console.log(users.hasOwnProperty(prop));
+      console.log("no user.");
+      res.redirect("/urls/register");
+    }
+  } */
+  if (Object.keys(users).length > 0 && req.cookies["user_id"]) {
+    res.render("urls_index", templateVars);
+  } else if (Object.keys(users).length === 0 || !req.cookies["user_id"]) {
+    console.log("no user.");
+    res.redirect("/urls/register");
+  }
 });
 
 app.get("/urls/new", (req, res) => {
@@ -46,11 +66,81 @@ app.get("/urls/new", (req, res) => {
   };
   res.render("urls_new", templateVars);
 });
+//register page
+app.get("/urls/register", (req, res) => {
+  //if (Object.keys(users).length > 0) {
+  //res.redirect("/urls");
+  // } else if (Object.keys(users).length === 0) {
+  res.render("urls_register");
+  //}
+});
 
+//login page
+app.get("/login", (req, res) => {
+  if (userStatus.userLoggedIn === false) {
+    console.log(
+      `userStatus.userLoggedIn should be false, actual: ${
+        userStatus.userLoggedIn
+      }`
+    );
+    res.render("urls_login", { userLoggedIn: userStatus.userLoggedIn });
+  } else if (userStatus.userLoggedIn === true) {
+    console.log(
+      `userStatus.userLoggedIn should be true, actual: ${
+        userStatus.userLoggedIn
+      }`
+    );
+    res.render("urls_login", { userLoggedIn: userStatus.userLoggedIn });
+  }
+});
+
+//register
+app.post("/register", (req, res) => {
+  var userRegistered = false;
+  console.log(`post register, users is: `, users);
+  for (var id in users) {
+    if (users[id].email === req.body.email) {
+      console.log(
+        `post register, comparison, userRegister should be false, but is actually: `,
+        userRegistered
+      );
+      userRegistered = true;
+    }
+  }
+
+  if (req.body.email === "" || req.body.password === "") {
+    console.log(
+      `post register, userRegister should be false, but is actually: `,
+      userRegistered
+    );
+    res.status(400);
+    res.render("urls_register");
+  } else if (userRegistered === false) {
+    let id = uuidv4();
+    let email = req.body.email;
+    let password = req.body.password;
+    console.log(
+      `post register, userRegister should be true, but is actually: `,
+      userRegistered
+    );
+    users[id] = {
+      id,
+      email,
+      password
+    };
+    console.log(users);
+    res.cookie("user_id", id);
+    res.redirect("/login");
+  } else if (userRegistered === true) {
+    res.redirect("/login");
+  }
+});
 app.get("/urls/:id", (req, res) => {
   let templateVars = {
     username: req.cookies["username"],
-    shortURL: req.params.id
+    shortURL: req.params.id,
+    urls: urlDatabase,
+    users: users
   };
   res.render("urls_show", templateVars);
 });
@@ -60,7 +150,8 @@ app.get("/urls/:id/edit", (req, res) => {
   let templateVars = {
     username: req.cookies["username"],
     shortURL: req.params.id,
-    urls: urlDatabase
+    urls: urlDatabase,
+    users: users
   };
   res.render("urls_show", templateVars);
 });
@@ -77,7 +168,11 @@ app.get("/u/:shortURL", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   let deleteURL = req.params.id;
   delete urlDatabase[deleteURL];
-  let templateVars = { username: req.cookies["username"], urls: urlDatabase };
+  let templateVars = {
+    username: req.cookies["username"],
+    urls: urlDatabase,
+    users: users
+  };
   res.render("urls_index", templateVars);
 });
 
@@ -90,7 +185,11 @@ app.post("/urls/:id/update", (req, res) => {
   //console.log(req.body.newURL);
   //console.log("res", res);
 
-  let templateVars = { username: req.cookies["username"], urls: urlDatabase };
+  let templateVars = {
+    username: req.cookies["username"],
+    urls: urlDatabase,
+    users: users
+  };
   res.render("urls_index", templateVars);
 });
 app.post("/urls", (req, res) => {
@@ -107,13 +206,35 @@ app.post("/urls", (req, res) => {
 
 //sign in cookie
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username);
-  res.redirect("urls");
+  let email = req.body.login;
+  let password = req.body.password;
+  if (
+    users[req.cookies["user_id"]].email === email &&
+    users[req.cookies["user_id"]].password === password
+  ) {
+    console.log(
+      `post login, userStatus.userLoggedIn should be true, but is actually: `,
+      userStatus.userLoggedIn
+    );
+    userStatus.userLoggedIn = true;
+    res.redirect("/urls");
+  } else if (
+    users[req.cookies["user_id"]].email !== email &&
+    users[req.cookies["user_id"]].password !== password
+  ) {
+    console.log(
+      `post login, userStatus.userLoggedIn should be false, but is actually: `,
+      userStatus.userLoggedIn
+    );
+    res.render("urls_login", { userLoggedIn: userStatus.userLoggedIn });
+  }
 });
+
 //sign out cookie
 app.get("/logout", (req, res) => {
-  res.clearCookie("username");
-  res.redirect("urls");
+  res.clearCookie("user_id");
+  userStatus.userLoggedIn = false;
+  res.render("urls_login", { userLoggedIn: userStatus.userLoggedIn });
 });
 
 app.listen(PORT, () => {
