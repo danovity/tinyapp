@@ -7,30 +7,11 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 var cookieParser = require("cookie-parser");
 app.use(cookieParser());
-
-function generateRandomString() {
-  //Imported from the URL below
-  //https://stackoverflow.com/questions/10726909/random-alpha-numeric-string-in-javascript
-  console.log("random.");
-  var chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  var length = 6;
-  var result = "";
-  for (var i = length; i > 0; --i) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  console.log(result);
-  return result;
-}
-
-function headerState() {
-  return req.cookies["user_id"] ? req.cookies["user_id"] : undefined;
-}
-
 app.set("view engine", "ejs");
 
 var urlDatabase = {
-  b2xVn2: "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b2xVn2: { url: "http://www.lighthouselabs.ca" },
+  "9sm5xK": { url: "http://www.google.com" }
 };
 
 const users = {
@@ -46,6 +27,30 @@ const users = {
   }
 };
 const userStatus = { userLoggedIn: false };
+
+function addIdToDB(id) {
+  for (var key in urlDatabase) {
+    urlDatabase[key]["userID"] = id;
+  }
+  return;
+}
+
+function generateRandomString() {
+  //Imported from the URL below
+  //https://stackoverflow.com/questions/10726909/random-alpha-numeric-string-in-javascript
+  console.log("random.");
+  var chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  var length = 6;
+  var result = "";
+  for (var i = length; i > 0; --i) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return result;
+}
+
+function headerState() {
+  return req.cookies["user_id"] ? req.cookies["user_id"] : undefined;
+}
 
 //current user that is logged in
 function currentUser(req) {
@@ -81,10 +86,11 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  let templateVars = {
-    user: currentUser(req)
-  };
-  res.render("urls_new", templateVars);
+  if (currentUser(req)) {
+    res.render("urls_new", { user: currentUser(req) });
+  } else {
+    res.redirect("/login");
+  }
 });
 
 //register page
@@ -118,10 +124,6 @@ app.post("/register", (req, res) => {
     userValid = true;
     for (var id in users) {
       if (users[id].email === req.body.email) {
-        console.log(
-          `post register, comparison, userRegister should be false, but is actually: `,
-          userValid
-        );
         userValid = false;
         break; //stops the for loop, if the user email is already registered
         // break, bc for loop
@@ -132,30 +134,17 @@ app.post("/register", (req, res) => {
     let id = uuidv4();
     let email = req.body.email;
     let password = req.body.password;
-    console.log(
-      `post register, userRegister should be true, but is actually: `,
-      userValid
-    );
+
     users[id] = {
       id,
       email,
       password
     };
-    console.log(users);
-    res.cookie("user_id", id);
     res.redirect("/login");
   } else {
     //userValid === false
     res.redirect("/login");
   }
-});
-app.get("/urls/:id", (req, res) => {
-  let templateVars = {
-    user: currentUser(req),
-    shortURL: req.params.id,
-    urls: urlDatabase
-  };
-  res.render("urls_show", templateVars);
 });
 
 //receiving the url that the user wants to update and go to urls_show
@@ -169,13 +158,18 @@ app.get("/urls/:id/edit", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  // let longURL = ...
   let longURL = urlDatabase[req.params.shortURL];
-  console.log("shortURL", req.params.shortURL);
-  console.log(typeof longURL);
   res.redirect(longURL);
 });
 
+app.get("/urls/:id", (req, res) => {
+  let templateVars = {
+    user: currentUser(req),
+    shortURL: req.params.id,
+    urls: urlDatabase
+  };
+  res.render("urls_show", templateVars);
+});
 //delete the url from database
 app.post("/urls/:id/delete", (req, res) => {
   let deleteURL = req.params.id;
@@ -203,19 +197,19 @@ app.post("/urls/:id/update", (req, res) => {
 app.post("/urls", (req, res) => {
   let longURL = req.body.longURL;
   let shortURL = generateRandomString();
-  console.log("shortURL", shortURL);
   urlDatabase[shortURL] = longURL;
   res.redirect(`u/${shortURL}`);
 });
 
 //sign in cookie
 app.post("/login", (req, res) => {
-  console.log("at post login, req is: ", req);
   let enteredEmail = req.body.login;
   let enteredPassword = req.body.password;
   let id = userLoggedIn(enteredEmail, enteredPassword);
   if (id) {
     res.cookie("user_id", id);
+    addIdToDB(id);
+    console.log(urlDatabase);
     res.redirect("/urls");
   } else {
     res.status(403);
