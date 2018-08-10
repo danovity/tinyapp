@@ -10,8 +10,8 @@ app.use(cookieParser());
 app.set("view engine", "ejs");
 
 var urlDatabase = {
-  b2xVn2: { url: "http://www.lighthouselabs.ca" },
-  "9sm5xK": { url: "http://www.google.com" }
+  b2xVn2: { url: "http://www.lighthouselabs.ca", userID: "user2RandomID" },
+  "9sm5xK": { url: "http://www.google.com", userID: "user2RandomID" }
 };
 
 const users = {
@@ -23,14 +23,25 @@ const users = {
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk"
+    password: "123"
   }
 };
-const userStatus = { userLoggedIn: false };
 
-function addIdToDB(id) {
+function urlsForUser(newId) {
+  let newUrl = {};
+
   for (var key in urlDatabase) {
-    urlDatabase[key]["userID"] = id;
+    id = urlDatabase[key]["userID"];
+    if (newId === id) {
+      newUrl[key] = urlDatabase[key];
+    }
+  }
+  return newUrl;
+}
+
+function addIdToDB(id, req) {
+  for (var key in urlsForUser(req.cookies.user_id)) {
+    urlsForUser(req.cookies.user_id)[key]["userID"] = id;
   }
   return;
 }
@@ -38,7 +49,6 @@ function addIdToDB(id) {
 function generateRandomString() {
   //Imported from the URL below
   //https://stackoverflow.com/questions/10726909/random-alpha-numeric-string-in-javascript
-  console.log("random.");
   var chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   var length = 6;
   var result = "";
@@ -46,10 +56,6 @@ function generateRandomString() {
     result += chars[Math.floor(Math.random() * chars.length)];
   }
   return result;
-}
-
-function headerState() {
-  return req.cookies["user_id"] ? req.cookies["user_id"] : undefined;
 }
 
 //current user that is logged in
@@ -71,17 +77,16 @@ function userLoggedIn(enteredEmail, enteredPassword) {
 }
 
 app.get("/urls", (req, res) => {
-  //console.log(req.headers);
   let templateVars = {
     user: currentUser(req),
-    urls: urlDatabase
+    urls: urlsForUser(req.cookies.user_id)
   };
-
-  if (Object.keys(users).length > 0 && req.cookies["user_id"]) {
+  console.log(templateVars.urls);
+  if (Object.keys(users).length > 0 && req.cookies.user_id) {
     res.render("urls_index", templateVars);
   } else if (Object.keys(users).length === 0 || !req.cookies["user_id"]) {
-    console.log("no user.");
-    res.redirect("/urls/register");
+    res.send("Please log in or register first");
+    res.redirect("/register");
   }
 });
 
@@ -110,13 +115,8 @@ app.get("/login", (req, res) => {
 //register
 app.post("/register", (req, res) => {
   var userValid = false;
-  console.log(`post register, users is: `, users);
 
   if (req.body.email === "" || req.body.password === "") {
-    console.log(
-      `post register, userRegister should be false, but is actually: `,
-      userValid
-    );
     res.status(400);
     res.render("urls_register");
     return; // return is to end function
@@ -152,13 +152,13 @@ app.get("/urls/:id/edit", (req, res) => {
   let templateVars = {
     user: currentUser(req),
     shortURL: req.params.id,
-    urls: urlDatabase
+    urls: urlsForUser(req.cookies.user_id)
   };
   res.render("urls_show", templateVars);
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL];
+  let longURL = urlDatabase[req.params.shortURL].url;
   res.redirect(longURL);
 });
 
@@ -166,19 +166,25 @@ app.get("/urls/:id", (req, res) => {
   let templateVars = {
     user: currentUser(req),
     shortURL: req.params.id,
-    urls: urlDatabase
+    urls: urlsForUser(req.cookies.user_id)
   };
   res.render("urls_show", templateVars);
 });
+
 //delete the url from database
 app.post("/urls/:id/delete", (req, res) => {
   let deleteURL = req.params.id;
-  delete urlDatabase[deleteURL];
-  let templateVars = {
-    urls: urlDatabase,
-    user: currentUser(req)
-  };
-  res.render("urls_index", templateVars);
+  if (
+    req.cookies.user_id === urlsForUser(req.cookies.user_id)[deleteURL].userID
+  ) {
+    delete urlDatabase[deleteURL];
+    let templateVars = {
+      urls: urlsForUser(req.cookies.user_id),
+      user: currentUser(req)
+    };
+    res.render("urls_index", templateVars);
+  }
+  res.render("urls_login", { user: undefined });
 });
 
 //updating the long url
@@ -186,19 +192,20 @@ app.post("/urls/:id/update", (req, res) => {
   let updateUrlName = req.params.id;
   let updateUrlValue = req.body.newURL;
 
-  urlDatabase[updateUrlName] = updateUrlValue;
+  urlsForUser(req.cookies.user_id)[updateUrlName].url = updateUrlValue;
 
   let templateVars = {
     user: currentUser(req),
-    urls: urlDatabase
+    urls: urlsForUser(req.cookies.user_id)
   };
   res.render("urls_index", templateVars);
 });
+
 app.post("/urls", (req, res) => {
   let longURL = req.body.longURL;
   let shortURL = generateRandomString();
-  urlDatabase[shortURL] = longURL;
-  res.redirect(`u/${shortURL}`);
+  urlsForUser(req.cookies.user_id)[shortURL] = { url: longURL };
+  res.redirect(`/urls`);
 });
 
 //sign in cookie
@@ -208,8 +215,7 @@ app.post("/login", (req, res) => {
   let id = userLoggedIn(enteredEmail, enteredPassword);
   if (id) {
     res.cookie("user_id", id);
-    addIdToDB(id);
-    console.log(urlDatabase);
+    addIdToDB(id, req);
     res.redirect("/urls");
   } else {
     res.status(403);
