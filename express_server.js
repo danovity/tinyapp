@@ -52,9 +52,9 @@ function matchUserIdByEmail(enteredEmail) {
   return;
 }
 
-function matchUserIdByShortURL(id) {
+function matchUserIdByShortURL(user) {
   for (var shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === id) {
+    if (urlDatabase[shortURL].userID === user.id) {
       return true;
     }
   }
@@ -209,6 +209,8 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
+  console.log(urlDatabase);
+  console.log(currentUser(req));
   if (currentUser(req)) {
     if (matchUserIdByShortURL(currentUser(req))) {
       let templateVars = {
@@ -216,7 +218,7 @@ app.get("/urls/:id", (req, res) => {
         shortURL: req.params.id,
         urls: urlsForUser(req.session.user_id)
       };
-      res.render("/urls/:id/edit", templateVars);
+      res.render("urls_show", templateVars);
     } else {
       res.send("You do not own this short URL.");
     }
@@ -260,8 +262,8 @@ app.post("/urls", (req, res) => {
   let shortURL = generateRandomString();
 
   urlDatabase[shortURL] = { url: longURL, userID: currentUser(req).id };
-
-  res.redirect(`/urls`);
+  console.log(urlDatabase);
+  res.redirect(`/urls/${shortURL}`);
 });
 
 //sign in cookie
