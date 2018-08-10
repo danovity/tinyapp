@@ -51,6 +51,15 @@ function matchUserIdByEmail(enteredEmail) {
   }
   return;
 }
+
+function matchUserIdByShortURL(id) {
+  for (var shortURL in urlDatabase) {
+    if (urlDatabase[shortURL].userID === id) {
+      return true;
+    }
+  }
+  return false;
+}
 function urlsForUser(newId) {
   let newUrl = {};
 
@@ -200,12 +209,20 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  let templateVars = {
-    user: currentUser(req),
-    shortURL: req.params.id,
-    urls: urlsForUser(req.session.user_id)
-  };
-  res.render("urls_show", templateVars);
+  if (currentUser(req)) {
+    if (matchUserIdByShortURL(currentUser(req))) {
+      let templateVars = {
+        user: currentUser(req),
+        shortURL: req.params.id,
+        urls: urlsForUser(req.session.user_id)
+      };
+      res.render("/urls/:id/edit", templateVars);
+    } else {
+      res.send("You do not own this short URL.");
+    }
+  } else {
+    res.send("Please log in or register first");
+  }
 });
 
 //delete the url from database
