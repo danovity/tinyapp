@@ -9,6 +9,8 @@ var cookieParser = require("cookie-parser");
 app.use(cookieParser());
 app.set("view engine", "ejs");
 
+const bcrypt = require("bcrypt");
+
 var urlDatabase = {
   b2xVn2: { url: "http://www.lighthouselabs.ca", userID: "user2RandomID" },
   "9sm5xK": { url: "http://www.google.com", userID: "user2RandomID" }
@@ -27,6 +29,14 @@ const users = {
   }
 };
 
+function matchUserIdByEmail(enteredEmail) {
+  for (var id in users) {
+    if (users[id].email === enteredEmail) {
+      return id;
+    }
+  }
+  return;
+}
 function urlsForUser(newId) {
   let newUrl = {};
 
@@ -66,10 +76,11 @@ function currentUser(req) {
 //check if user is logged in
 function userLoggedIn(enteredEmail, enteredPassword) {
   for (var id in users) {
-    if (
-      enteredEmail === users[id].email &&
-      enteredPassword === users[id].password
-    ) {
+    let passwordValid = bcrypt.compareSync(
+      enteredPassword,
+      users[matchUserIdByEmail(enteredEmail)].password
+    ); // returns true
+    if (enteredEmail === users[id].email && passwordValid) {
       return id;
     }
   }
@@ -134,11 +145,12 @@ app.post("/register", (req, res) => {
     let id = uuidv4();
     let email = req.body.email;
     let password = req.body.password;
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
     users[id] = {
       id,
       email,
-      password
+      password: hashedPassword
     };
     res.redirect("/login");
   } else {
@@ -212,7 +224,9 @@ app.post("/urls", (req, res) => {
 app.post("/login", (req, res) => {
   let enteredEmail = req.body.login;
   let enteredPassword = req.body.password;
+
   let id = userLoggedIn(enteredEmail, enteredPassword);
+
   if (id) {
     res.cookie("user_id", id);
     addIdToDB(id, req);
