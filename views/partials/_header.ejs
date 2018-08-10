@@ -1,8 +1,9 @@
 <% if(user) { %>
+    <h2>
+        <%= user.email %>
+    </h2>
+
     <form action="/logout" method="GET">
-        <label>
-            <%= user.id %>
-        </label>
         <button type="submit">log out</button>
     </form>
     <% } else { %>
