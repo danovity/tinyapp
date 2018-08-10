@@ -13,19 +13,19 @@ const bcrypt = require("bcrypt");
 
 var urlDatabase = {
   b2xVn2: { url: "http://www.lighthouselabs.ca", userID: "user2RandomID" },
-  "9sm5xK": { url: "http://www.google.com", userID: "user2RandomID" }
+  "9sm5xK": { url: "http://www.google.com", userID: "userRandomID" }
 };
 
 const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur"
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
   },
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "123"
+    password: bcrypt.hashSync("123", 10)
   }
 };
 
@@ -92,7 +92,6 @@ app.get("/urls", (req, res) => {
     user: currentUser(req),
     urls: urlsForUser(req.cookies.user_id)
   };
-  console.log(templateVars.urls);
   if (Object.keys(users).length > 0 && req.cookies.user_id) {
     res.render("urls_index", templateVars);
   } else if (Object.keys(users).length === 0 || !req.cookies["user_id"]) {
@@ -142,7 +141,7 @@ app.post("/register", (req, res) => {
     }
   }
   if (userValid === true) {
-    let id = uuidv4();
+    let id = generateRandomString();
     let email = req.body.email;
     let password = req.body.password;
     const hashedPassword = bcrypt.hashSync(password, 10);
