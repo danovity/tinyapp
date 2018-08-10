@@ -1,11 +1,17 @@
 <% if(user) { %>
-    <h2>
-        <%= user.email %>
-    </h2>
+    <div style="display:flex; align-items:center;margin-left:10px">
+        <h2>
+            <%= user.email %>
+        </h2>
 
-    <form action="/logout" method="GET">
-        <button type="submit">log out</button>
-    </form>
+        <form action="/logout" method="GET" style="margin-left:10px">
+            <button type="submit">log out</button>
+        </form>
+
+        <a href='/urls/new' style="margin-left:10px">
+            Create a New Short Link </a>
+    </div>
+
     <% } else { %>
         <a href="/register">Register</a>
         <a href="/login">Login</a>

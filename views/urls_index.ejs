@@ -11,17 +11,20 @@
 
     <main>
         <%- include partials/_header.ejs %>
+
             <ul>
                 <% for (var shortURL in urls) { %>
-                    <li>
+                    <li style="display:flex; margin-left:10px">
                         <%= shortURL %> ---->
                             <a href='<%= urls[shortURL] %>'>
                                 <%= urls[shortURL].url %>
                             </a>
-                            <a href='/urls/<%= shortURL %>/edit'>
-                                Edit
-                            </a>
-                            <form method="POST" action="/urls/<%= shortURL %>/delete">
+
+                            <form action='/urls/<%= shortURL %>/edit' style="margin-left:10px">
+                                <input type="submit" value="Edit" />
+                            </form>
+
+                            <form method="POST" action="/urls/<%= shortURL %>/delete" style="margin-left:10px">
                                 <button type="submit" value="<%= shortURL %>">Delete</button>
                             </form>
 

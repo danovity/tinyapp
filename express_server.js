@@ -139,6 +139,15 @@ app.get("/login", (req, res) => {
   }
 });
 
+// "/" redirect
+app.get("/", (req, res) => {
+  if (currentUser(req)) {
+    res.redirect("/urls");
+  } else {
+    res.render("urls_login", { user: undefined });
+  }
+});
+
 //register
 app.post("/register", (req, res) => {
   var userValid = false;
@@ -232,7 +241,9 @@ app.post("/urls/:id/update", (req, res) => {
 app.post("/urls", (req, res) => {
   let longURL = req.body.longURL;
   let shortURL = generateRandomString();
-  urlsForUser(req.session.user_id)[shortURL] = { url: longURL };
+
+  urlDatabase[shortURL] = { url: longURL, userID: currentUser(req).id };
+
   res.redirect(`/urls`);
 });
 
@@ -255,7 +266,7 @@ app.post("/login", (req, res) => {
 
 //sign out cookie
 app.get("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  req.session = null;
   res.render("urls_login", { user: undefined });
 });
 
