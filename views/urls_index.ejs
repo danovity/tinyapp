@@ -5,7 +5,11 @@
     <title>TinyApp</title>
 </head>
 
-<body>
+<body style="display: flex;
+
+align-items: center;
+
+justify-content: center;">
     <!-- Add your EJS code here -->
 
 
@@ -16,7 +20,7 @@
                 <% for (var shortURL in urls) { %>
                     <li style="display:flex; margin-left:10px">
                         <%= shortURL %> ---->
-                            <a href='<%= urls[shortURL] %>'>
+                            <a href='u/<%= shortURL %>'>
                                 <%= urls[shortURL].url %>
                             </a>
 

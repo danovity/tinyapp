@@ -51,25 +51,24 @@ function matchUserIdByEmail(enteredEmail) {
   }
   return;
 }
-// can do without loop
-function matchUserIdByShortURL(user) {
-  for (var shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === user.id) {
-      return true;
-    }
+// check if the user owns the shortURL
+function matchUserIdByShortURL(user, shortURL) {
+  if (urlDatabase[shortURL].userID !== user.id) {
+    return false;
   }
-  return false;
+  return true;
 }
-function urlsForUser(newId) {
-  let newUrl = {};
+
+function urlsForUser(sessionUserId) {
+  let sessionUserDB = {};
 
   for (var key in urlDatabase) {
     id = urlDatabase[key]["userID"];
-    if (newId === id) {
-      newUrl[key] = urlDatabase[key];
+    if (sessionUserId === id) {
+      sessionUserDB[key] = urlDatabase[key];
     }
   }
-  return newUrl;
+  return sessionUserDB;
 }
 
 // maybe not needed
@@ -181,7 +180,7 @@ app.get("/urls/:id", (req, res) => {
   console.log(urlDatabase);
   console.log(currentUser(req));
   if (currentUser(req)) {
-    if (matchUserIdByShortURL(currentUser(req))) {
+    if (matchUserIdByShortURL(currentUser(req), req.params.id)) {
       let templateVars = {
         user: currentUser(req),
         shortURL: req.params.id,
