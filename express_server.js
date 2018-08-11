@@ -59,6 +59,7 @@ function matchUserIdByShortURL(user, shortURL) {
   return true;
 }
 
+// create custom database for the current user in session
 function urlsForUser(sessionUserId) {
   let sessionUserDB = {};
 
@@ -69,14 +70,6 @@ function urlsForUser(sessionUserId) {
     }
   }
   return sessionUserDB;
-}
-
-// maybe not needed
-function addIdToDB(id, req) {
-  for (var key in urlsForUser(req.session.user_id)) {
-    urlsForUser(req.session.user_id)[key]["userID"] = id;
-  }
-  return;
 }
 
 function generateRandomString() {
@@ -283,7 +276,6 @@ app.post("/login", (req, res) => {
 
   if (id) {
     req.session.user_id = id;
-    addIdToDB(id, req);
     res.redirect("/urls");
   } else {
     res.status(403);
