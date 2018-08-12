@@ -4,13 +4,13 @@ TinyApp is a full stack web application built with Node and Express
 
 ## Final Product
 
-Login Page
+<h3>Login Page</h3>
 <img src="docs/login page.JPG" width="500">
 
-Registration Page
+<h3>Registration Page</h3>
 <img src="docs/registration page.JPG" width="500">
 
-User Main Page
+<h3>User Main Page</h3>
 <img src="docs/user short links page.JPG" width="500">
 
 ## Dependencies
